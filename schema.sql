@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS ai_visibility_checks (
     cited             INTEGER DEFAULT 0,
     competitors_cited TEXT,                  -- JSON array
     source_urls_pulled TEXT,                 -- JSON array
+    answer            TEXT,                  -- raw AI answer (audit trail)
     notes             TEXT,
     created_at        TEXT DEFAULT (datetime('now'))
 );
