@@ -17,6 +17,71 @@ SLOGAN = "Always A Safe Bet"
 
 OG_IMAGE = f"{DOMAIN}/assets/img/lance-hero.jpeg"
 
+# ---------------------------------------------------------------------------
+# Canonical business identity (Section 2-4 of the AI Authoring brief).
+# This is the single source of truth for NAP + entity metadata. Any page or
+# schema generator must import from here rather than hard-coding values.
+# ---------------------------------------------------------------------------
+
+# Business category + founding year are taken from the site's own published
+# schema/body copy ("Family-owned and operated since 2019", foundingDate 2019).
+PRIMARY_CATEGORY = "Plumber"
+FOUNDING_YEAR = "2019"
+AREA_SERVED = [
+    "Laguna Niguel", "Dana Point", "San Clemente", "Mission Viejo",
+    "Laguna Hills", "Aliso Viejo", "Ladera Ranch", "Rancho Santa Margarita",
+    "Coto de Caza", "Dove Canyon", "Lake Forest", "Foothill Ranch",
+    "Irvine", "Newport Beach", "Laguna Beach", "Laguna Woods",
+    "San Juan Capistrano", "Costa Mesa", "Huntington Beach", "Tustin", "Orange",
+]  # noqa: E501
+
+# Opening hours — as published consistently across the site footer + schema.
+OPENING_HOURS = [
+    {"dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+     "opens": "08:00", "closes": "19:00"},
+    {"dayOfWeek": ["Saturday", "Sunday"],
+     "opens": "09:00", "closes": "18:00"},
+]
+OPENING_HOURS_DISPLAY = "Mon\u2013Fri 8am\u20137pm \u00b7 Sat\u2013Sun 9am\u20136pm"
+# Emergency coverage is a service feature, not part of opens/closes.
+EMERGENCY_HOURS_DISPLAY = "24/7 for emergencies"
+
+# KnowsAbout / services offered (matches index.html offers + footer services).
+KNOWS_ABOUT = [
+    "slab leak detection",
+    "acoustic leak detection",
+    "thermal imaging leak detection",
+    "copper pipe failure in expansive clay soils",
+    "PEX repiping",
+    "South Orange County residential plumbing",
+    "hidden water leak diagnosis",
+    "electronic leak detection",
+    "pressure testing",
+]
+
+# ----------------------------- sameAs -------------------------------------
+# ONLY include URLs that are verified to belong to Straight Flush Plumbing &
+# Leak Detection. Anything not yet verified stays in SAMEAS_TODO.
+SAMEAS_VERIFIED = [
+    "https://www.yelp.com/biz/straight-flush-plumbing-and-leak-detection-laguna-niguel-3",
+    "https://share.google/WcJBYE3uu5FsppBTR",  # Google Business Profile share link
+]
+
+# Candidate profiles that must be created/verified before they may be added to
+# SAMEAS_VERIFIED. DO NOT invent a URL here.
+SAMEAS_TODO = [
+    ("Google Business Profile", "https://business.google.com/", "open"),
+    ("Bing Places", "https://www.bingplaces.com/", "open"),
+    ("Apple Business Connect", "https://businessconnect.apple.com/", "open"),
+    ("BBB", None, "open"),
+    ("Facebook", None, "open"),
+    ("Instagram", None, "open"),
+    ("LinkedIn", None, "open"),
+    ("YouTube", None, "open"),
+    ("Nextdoor", None, "open"),
+    ("Angi / HomeAdvisor", None, "open"),
+]
+
 # 21 canonical city pages (filenames as on disk).
 CITIES = [
     "aliso-viejo", "costa-mesa", "coto-de-caza", "dana-point", "dove-canyon",

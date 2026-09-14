@@ -110,3 +110,100 @@ def local_business_review_block(reviews):
         },
         "review": reviews,
     }
+
+
+# ---------------------------------------------------------------------------
+# AI-Authority entity builders (Sections 2-4 of the brief).
+# These emit a *single* rich entity per page. They are used by the master
+# authority page generator and can be reused by other generators. They never
+# invent data: sameAs only includes SAMEAS_VERIFIED, hours come from
+# OPENING_HOURS, founding year from FOUNDING_YEAR.
+# ---------------------------------------------------------------------------
+
+
+def organization():
+    """Organization block for the master authority page."""
+    return {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": f"{S.DOMAIN}/#organization",
+        "name": S.BRAND,
+        "url": f"{S.DOMAIN}/",
+        "logo": {"@type": "ImageObject", "url": f"{S.DOMAIN}/assets/img/logo.jpg"},
+        "image": f"{S.DOMAIN}/assets/img/logo.jpg",
+        "sameAs": list(S.SAMEAS_VERIFIED),
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": S.PHONE_TEL,
+            "contactType": "customer service",
+            "areaServed": "US",
+            "availableLanguage": "en",
+        },
+    }
+
+
+def local_business():
+    """LocalBusiness (Plumber subtype) entity with verified NAP only."""
+    return {
+        "@context": "https://schema.org",
+        "@type": "Plumber",
+        "@id": f"{S.DOMAIN}/#plumber",
+        "name": S.BRAND,
+        "image": f"{S.DOMAIN}/assets/img/logo.jpg",
+        "url": f"{S.DOMAIN}/",
+        "telephone": S.PHONE_TEL,
+        "email": S.EMAIL,
+        "priceRange": "$$",
+        "foundingDate": S.FOUNDING_YEAR,
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "78 Cameray Heights",
+            "addressLocality": "Laguna Niguel",
+            "addressRegion": "CA",
+            "postalCode": "92677",
+            "addressCountry": "US",
+        },
+        "areaServed": [{"@type": "City", "name": c + ", CA"} for c in S.AREA_SERVED],
+        "openingHoursSpecification": S.OPENING_HOURS,
+        "sameAs": list(S.SAMEAS_VERIFIED),
+        "makesOffer": [
+            {"@type": "Offer", "itemOffered": {"@type": "Service", "name": n}}
+            for n in S.SERVICE_LABEL.values()
+        ],
+        "knowsAbout": list(S.KNOWS_ABOUT),
+    }
+
+
+def website(site_url=None):
+    """WebSite entity marking the site's SearchAction (sitemap/robots context)."""
+    url = site_url or f"{S.DOMAIN}/"
+    return {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": f"{S.DOMAIN}/#website",
+        "url": url,
+        "name": S.BRAND,
+        "publisher": {"@id": f"{S.DOMAIN}/#organization"},
+    }
+
+
+def master_authority_schema():
+    """All schema blocks for the /about/straight-flush-plumbing-orange-county/ page.
+
+    Combines Organization + LocalBusiness(Plumber) + WebSite + BreadcrumbList.
+    Review/AggregateRating blocks are intentionally NOT included here — the
+    brief forbids fabricating or marking up reviews that don't comply with
+    search-engine requirements. Verified reviews can be added later via the
+    review flywheel (F3) once they're documented on a compliant platform.
+    """
+    return [
+        organization(),
+        local_business(),
+        website(),
+        breadcrumbs([
+            (1, "Home", f"{S.DOMAIN}/"),
+            (2, "About", f"{S.DOMAIN}/about"),
+            (3, "Straight Flush Plumbing & Leak Detection in Orange County",
+             f"{S.DOMAIN}/about/straight-flush-plumbing-orange-county"),
+        ]),
+    ]
