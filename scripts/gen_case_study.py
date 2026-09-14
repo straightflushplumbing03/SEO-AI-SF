@@ -247,14 +247,27 @@ def _upsert_hub(hub_path, result, worktree):
         if result["slug"] in existing:
             return  # already listed
         card = _hub_card(result)
-        # Insert into the card grid: find the grid's closing indent "    </div>" 
-        # that closes the card-grid <div class="card-grid ..."> block.
-        grid = _re.search(r'<div class="card-grid[^"]*">(.*?)</div>', existing, _re.S)
-        if not grid:
+        # Insert into the card grid. Cards contain nested <div> elements, so a
+        # naive non-greedy (.*?)</div> match lands on an inner close tag. Count
+        # <div>/</div> depth to find the card-grid's real matching close tag.
+        start = _re.search(r'<div class="card-grid[^"]*"[^>]*>', existing)
+        if not start:
             raise RuntimeError("hub page has no card-grid to extend")
-        inner = grid.group(1)
-        new_inner = inner + "\n" + card
-        existing = existing[:grid.start(1)] + new_inner + existing[grid.end(1):]
+        grid_start = start.end()
+        depth = 0
+        grid_end = None
+        for m in _re.finditer(r'<div\b|</div>', existing[grid_start:]):
+            if m.group(0) == "<div":
+                depth += 1
+            else:
+                depth -= 1
+                if depth == 0:
+                    grid_end = grid_start + m.end()
+                    break
+        if grid_end is None:
+            raise RuntimeError("hub page has no card-grid to extend")
+        new_inner = existing[grid_start:grid_end].rstrip() + "\n" + card
+        existing = existing[:grid_start] + new_inner + existing[grid_end:]
         with open(hub_path, "w", encoding="utf-8") as f:
             f.write(existing)
         return
