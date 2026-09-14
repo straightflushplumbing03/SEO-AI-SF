@@ -47,25 +47,35 @@ sfge-engine/
 │   ├── db.py             # thin sqlite3/psycopg wrapper
 │   ├── livecheck.py      # smoke-test the live site (canonicals, sitemap, schema key)
 │   ├── intake_job.py     # F1: technician job-close intake (CLI + CSV batch)
-│   └── gen_case_study.py # F2: generate case-study page + PR
+│   ├── gen_case_study.py # F2: generate case-study page + PR
+│   ├── review_import.py  # F3: import reviews + mine customer language
+│   ├── weekly_report.py  # Phase 2 weekly report (jobs/reviews/content/opps/AI/audit)
+│   ├── build_opportunities.py  # Module A: seed prioritized opportunity backlog
+│   ├── gen_content.py    # Module B: blog/comparison/Tier-1/Tier-2 content + PR
+│   ├── audit_engine.py   # Module D: weekly technical/GEO audit + auto-fix PR
+│   ├── ai_visibility.py  # Module E: prompt panel, SerpApi run, AI gap -> opps
+│   ├── demand_signal.py  # F4: ranked housing-age x presence expansion list
+│   └── dashboard.py      # Phase 6: all-module status + alerts + approval gate
 ├── modules/
-│   └── objects/          # page/schema/sitemap/link-graph/case-study builders
+│   └── objects/          # page/schema/sitemap/link-graph/case-study builders +
+│                         # review_miner, review_fold, keywords, blog_gen,
+│                         # link_audit, audit, ai_visibility, demand_signal,
+│                         # settings, alerts
 └── tests/                # acceptance + gold-markup regression tests
 ```
 
-## Current status — Phase 1 (Job-to-Content only)
+## Current status — all phases built
 
 - [x] Phase 0: live-site ground truth documented (`docs/SITE-GROUND-TRUTH.md`)
-- [x] `schema.sql` (jobs, reviews, opportunities, content, ai_visibility_checks, audit_findings)
-- [x] `scripts/db.py` (SQLite + optional Postgres), `scripts/init_db.py`
-- [x] `scripts/livecheck.py` — verifies live-site canonicals/sitemap/schema as a baseline guard
-- [x] `modules/objects/page.*`, `schema.*`, `sitemap.*`, `links.*` — gold-pattern page builder
-- [x] `modules/objects/case_study.py` — Tier-1 case-study generator AND Tier-2 honest scoped placeholder pages (`needs_field_data`)
-- [x] `scripts/gen_case_study.py` — CLI: `job_id` -> page file + PR against site repo
-- [x] `scripts/intake_job.py` — F1: CLI/CSV/SMS-ready job intake
-- [ ] Pending: Lance's historical job records — run backfill, then the first real batch of Tier-1 PRs
+- [x] Phase 1: F1 intake + F2 case studies (Tier-1 & Tier-2) — `gen_case_study.py` PR flow
+- [x] Phase 2: F3 review flywheel + weekly report
+- [x] Phase 3: Modules A+B keyword/opportunity + content engines (throttled to real data)
+- [x] Phase 4: Modules C+D schema/link automation + technical/GEO audit engine
+- [x] Phase 5: Module E AI-visibility tracker + F4 demand-signal model
+- [x] Phase 6: dashboard, alerts, approval-gate tuning
+- [ ] Ongoing: Lance's historical job records — run backfill, then the first real batch of Tier-1 PRs
 
-## How to run (Phase 1)
+## How to run
 
 ```bash
 # 0. Config + secrets (see .env.example). Never commit real values.
@@ -95,13 +105,27 @@ repo as new files under `case-studies/`, wired into the hub index, and added to 
 the site repo keeps full ownership of the remaining build/deploy pipeline and Cloudflare serves
 the result. Run `scripts/livecheck.py` before and after a PR batch to confirm no regression.
 
-## Roadmap (phases per the build brief)
+## Phase 6 reference
 
-- **Phase 1 (now):** F1 + F2 — job-to-content flywheel, PR per page, human approves & merges.
-- **Phase 2:** F3 review flywheel + basic weekly report.
-- **Phase 3:** Modules A + B — keyword/opportunity engine gated by the real-local-detail rule.
-- **Phase 4:** Modules C + D — schema/internal-linking automation + technical/GEO audits.
-- **Phase 5:** Module E AI-visibility tracking + F4 demand-signal model (housing-age data).
-- **Phase 6:** approval-gate tuning, dashboard, alerting.
+```bash
+# Weekly dashboard (all modules + approval-gate state + alert firing)
+python3 scripts/dashboard.py
+python3 scripts/dashboard.py --alerts          # Slack/email if SFGE_* envs set; else reports/alerts.log
+
+# AI visibility: manual entry of an engine answer (no API cost)
+python3 scripts/ai_visibility.py --add-result --engine perplexity \
+  --prompt "best slab leak detection company in Laguna Niguel" \
+  --answer "<paste the AI engine's answer>"
+# ... or run the 48-prompt panel against SerpApi AFTER Lance signs off (guardrail 6)
+SFGE_SERPAPI_KEY=... python3 scripts/ai_visibility.py --run-serpapi --engine perplexity
+python3 scripts/ai_visibility.py --feed-gaps    # uncited answers -> top-priority opportunities
+
+# Demand-signal expansion list (F4) — offline defaults or live Census ACS
+python3 scripts/demand_signal.py
+python3 scripts/demand_signal.py --fetch-census
+
+# Approval gate (guardrail 1: human review by default; Lance must raise it)
+python3 scripts/dashboard.py --gate
+```
 
 See `docs/` for detailed design notes.

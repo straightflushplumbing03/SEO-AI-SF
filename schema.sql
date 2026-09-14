@@ -97,6 +97,11 @@ CREATE TABLE IF NOT EXISTS audit_findings (
     created_at   TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS settings (
+    key          TEXT PRIMARY KEY,
+    value        TEXT
+);
+
 -- Convenience indexes
 CREATE INDEX IF NOT EXISTS idx_jobs_city       ON jobs (city);
 CREATE INDEX IF NOT EXISTS idx_jobs_service    ON jobs (service_type);
