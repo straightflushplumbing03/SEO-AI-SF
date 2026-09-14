@@ -12,7 +12,7 @@ Usage:
   python3 scripts/intake_job.py --city "Laguna Niguel" --service "Slab Leak Detection" \
     --neighborhood "Bear Brand" \
     --issue "Slab leak under kitchen; copper pinhole; rerouted through attic" \
-    --duration-hours 6 --cost-bucket "15001-25000" \
+    --duration-hours 6 --cost-bucket "15000-25000" \
     --quote "Best money we've spent on this house."
 
 Also accepts --csv to log a batch (data/backfill/*.csv) — see docs/BACKFILL.md.
