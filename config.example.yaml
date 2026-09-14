@@ -1,0 +1,47 @@
+# SFGE configuration. Copy to config.yaml and edit.
+
+site:
+  domain: "https://straightflushplumbingoc.com"
+  # The website repo SFGE opens PRs against (ground truth).
+  site_repo: "straightflushplumbing03/-Up2datewebsiteseo"
+  site_repo_default_branch: "main"
+  # Local working clone of the site repo used by gen_case_study.py.
+  site_clone_path: "/tmp/sfge-site-worktree"
+
+# Local dev server the engine can use to smoke-test generated pages
+# (any static server works; the two work hosts are web previews).
+preview:
+  host: "0.0.0.0"
+  ports: [12000, 12001]
+
+db:
+  # "sqlite" (default, zero deps) or "postgres"
+  backend: "sqlite"
+  sqlite_path: "sfge.db"
+  postgres_dsn: "postgresql://user:pass@localhost:5432/sfge"
+
+pr:
+  # Never bypass human review at first launch. This is a hard default.
+  # Set to true ONLY after Lance explicitly raises autonomy per Phase 6.
+  auto_merge: false
+  # Approvals before an auto-publish policy can even be considered.
+  approvals_required_before_autopilot: 20
+
+generation:
+  # No more than N NEW pages per day (module B throttle).
+  max_pages_per_day: 3
+  # A Tier-1 (real-detail) page requires at least this many source jobs.
+  min_jobs_for_tier1: 1
+
+publishing:
+  # Sitemap is hand-maintained in the site repo; new pages are appended by the
+  # page generator. Patch sitemap when true (default).
+  update_sitemap: true
+
+modules:
+  A: {enabled: false}   # keyword/opportunity engine (Phase 3)
+  B: {enabled: false}   # generic content engine (Phase 3)
+  C: {enabled: true}    # schema + internal links
+  D: {enabled: false}   # technical/GEO audit engine (Phase 4)
+  E: {enabled: false}   # AI visibility tracker (Phase 5)
+  F: {enabled: true}    # job-to-content flywheel (Phase 1)

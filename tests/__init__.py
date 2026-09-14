@@ -1,0 +1,1 @@
+# SFGE test package (runs from repo root: python -m unittest discover -s tests)

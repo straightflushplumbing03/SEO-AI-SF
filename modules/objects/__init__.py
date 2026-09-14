@@ -1,0 +1,1 @@
+# SFGE objects package: site-data constants, page builder, schema, sitemap, link graph.

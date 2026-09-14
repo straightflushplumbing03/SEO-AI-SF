@@ -1,0 +1,16 @@
+# Local state (SQLite database is regenerable from schema.sql + intake)
+sfge.db
+sfge.db-*
+
+# Secrets
+.env
+*.local.yaml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Site worktrees / previews
+tmp/
+workspace/site_worktree/
