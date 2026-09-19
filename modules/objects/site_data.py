@@ -8,6 +8,14 @@ these EXACT patterns so new pages are byte-compatible with the published site.
 """
 DOMAIN = "https://straightflushplumbingoc.com"
 
+# ---------------------------------------------------------------------------
+# Stable entity @ids. Every page and schema block MUST reference the business
+# by these ids rather than re-declaring an inline Plumber node. See
+# docs/ENTITY-MODEL.md for the full rationale.
+# ---------------------------------------------------------------------------
+BUSINESS_ID = f"{DOMAIN}/#business"   # Plumber / LocalBusiness / Organization
+WEBSITE_ID = f"{DOMAIN}/#website"     # WebSite
+
 BRAND = "Straight Flush Plumbing & Leak Detection"
 PHONE_DISPLAY = "(949) 374-6524"
 EMAIL = "straightflushplumbing03@gmail.com"
