@@ -43,12 +43,24 @@ class TestMasterSchema(unittest.TestCase):
 
     def test_contains_all_types(self):
         types = [b["@type"] for b in self._blocks()]
-        for expected in ("Organization", "Plumber", "WebSite", "BreadcrumbList"):
+        for expected in ("Plumber", "WebSite", "BreadcrumbList"):
             self.assertIn(expected, types)
 
-    def test_organization_sameas_verified_only(self):
-        org = next(b for b in self._blocks() if b["@type"] == "Organization")
-        self.assertEqual(set(org["sameAs"]), set(S.SAMEAS_VERIFIED))
+    def test_single_business_node_only(self):
+        """Plumber is an Organization subtype, so a separate Organization node
+        would duplicate the same real-world entity. See docs/ENTITY-MODEL.md."""
+        types = [b["@type"] for b in self._blocks()]
+        self.assertEqual(types.count("Plumber"), 1)
+        self.assertNotIn("Organization", types)
+
+    def test_business_node_has_stable_id(self):
+        biz = next(b for b in self._blocks() if b["@type"] == "Plumber")
+        self.assertEqual(biz["@id"], S.BUSINESS_ID)
+        self.assertEqual(biz["@id"], "https://straightflushplumbingoc.com/#business")
+
+    def test_business_sameas_verified_only(self):
+        biz = next(b for b in self._blocks() if b["@type"] == "Plumber")
+        self.assertEqual(set(biz["sameAs"]), set(S.SAMEAS_VERIFIED))
 
     def test_plumber_nap_hours_and_offers(self):
         plumber = next(b for b in self._blocks() if b["@type"] == "Plumber")
@@ -62,9 +74,21 @@ class TestMasterSchema(unittest.TestCase):
         # areaServed is a list of City objects
         self.assertTrue(all(c["@type"] == "City" for c in plumber["areaServed"]))
 
-    def test_website_refs_organization(self):
+    def test_website_refs_business(self):
         ws = next(b for b in self._blocks() if b["@type"] == "WebSite")
-        self.assertEqual(ws["publisher"]["@id"], f"{S.DOMAIN}/#organization")
+        self.assertEqual(ws["publisher"]["@id"], S.BUSINESS_ID)
+        self.assertEqual(ws["@id"], S.WEBSITE_ID)
+
+    def test_no_orphan_nodes(self):
+        """Every non-business node must reference the business by @id."""
+        blocks = self._blocks()
+        biz = next(b for b in blocks if b["@type"] == "Plumber")
+        self.assertEqual(biz["@id"], S.BUSINESS_ID)
+        # No inline Plumber objects anywhere else in the graph
+        for b in blocks:
+            if b["@type"] == "Plumber":
+                continue
+            self.assertNotIn('"@type": "Plumber"', json.dumps(b))
 
     def test_all_blocks_serialize(self):
         for b in self._blocks():
@@ -80,7 +104,7 @@ class TestAuthorityPage(unittest.TestCase):
         self.assertEqual(r["slug"], "straight-flush-plumbing-orange-county")
         self.assertEqual(r["canonical_path"], "about/straight-flush-plumbing-orange-county")
         self.assertIn("Orange County Plumbing & Leak Detection", r["title"])
-        for expected_type in ("Organization", "Plumber", "WebSite", "BreadcrumbList"):
+        for expected_type in ("Plumber", "WebSite", "BreadcrumbList"):
             self.assertIn(expected_type, r["schema_types"])
 
     def test_canonical_and_nap_present(self):
@@ -95,13 +119,13 @@ class TestAuthorityPage(unittest.TestCase):
         html = self.result["html"]
         blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>',
                             html, flags=re.S)
-        self.assertEqual(len(blocks), 4)
+        self.assertEqual(len(blocks), 3)
         types = set()
         for b in blocks:
             d = json.loads(b)
             types.add(d["@type"])
             json.dumps(d)  # serializable
-        self.assertEqual(types, {"Organization", "Plumber", "WebSite", "BreadcrumbList"})
+        self.assertEqual(types, {"Plumber", "WebSite", "BreadcrumbList"})
 
     def test_internal_links_resolve_to_real_files(self):
         """Every local href target must exist in the site repo checkout."""

@@ -11,14 +11,23 @@ Patterns verified on disk:
 from . import site_data as S
 
 
-def plumber_min(city_label):
-    return {
-        "@context": "https://schema.org",
-        "@type": "Plumber",
-        "name": S.BRAND,
-        "telephone": S.PHONE_TEL,
-        "areaServed": f"{city_label}, CA",
-    }
+def business_ref():
+    """Reference to the canonical business node (for provider/publisher/author).
+
+    Use this instead of inlining a second {"@type": "Plumber", "name": ...}.
+    See docs/ENTITY-MODEL.md.
+    """
+    return {"@id": S.BUSINESS_ID}
+
+
+def plumber_min(city_label=None):
+    """Deprecated shim — returns the canonical business node.
+
+    Previously emitted a bare, @id-less Plumber node with a varying areaServed,
+    which read as a separate business on every page. Kept as a thin alias so
+    existing callers keep working; prefer business() or business_ref().
+    """
+    return business()
 
 
 def breadcrumbs(crumbs):
@@ -48,7 +57,7 @@ def service_with_catalog(city_label, denormalized_services=None, service_type="P
         "@context": "https://schema.org",
         "@type": "Service",
         "serviceType": service_type,
-        "provider": {"@type": "Plumber", "name": S.BRAND},
+        "provider": business_ref(),
         "areaServed": {"@type": "City", "name": f"{city_label}, CA"},
         "hasOfferCatalog": {
             "@type": "OfferCatalog",
@@ -56,6 +65,20 @@ def service_with_catalog(city_label, denormalized_services=None, service_type="P
             "itemListElement": offers,
         },
     }
+
+
+def service(service_type, description=None, area_served="Orange County, CA"):
+    """Canonical Service node referencing the business by @id."""
+    node = {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "serviceType": service_type,
+        "provider": business_ref(),
+        "areaServed": {"@type": "AdministrativeArea", "name": area_served},
+    }
+    if description:
+        node["description"] = description
+    return node
 
 
 def faq(questions):
@@ -77,12 +100,8 @@ def article(headline, date, canonical_url):
         "headline": headline,
         "datePublished": date,
         "dateModified": date,
-        "author": {"@type": "Organization", "name": S.BRAND},
-        "publisher": {
-            "@type": "Organization",
-            "name": S.BRAND,
-            "logo": {"@type": "ImageObject", "url": f"{S.DOMAIN}/assets/img/logo.jpg"},
-        },
+        "author": business_ref(),
+        "publisher": business_ref(),
         "mainEntityOfPage": {"@type": "WebPage", "@id": canonical_url},
     }
 
@@ -98,9 +117,14 @@ def review_schema(author, rating, date_published, body):
 
 
 def local_business_review_block(reviews):
+    """Review block referencing the canonical business node.
+
+    Review bodies must come from real, verifiable platform reviews.
+    """
     return {
         "@context": "https://schema.org",
         "@type": "Plumber",
+        "@id": S.BUSINESS_ID,
         "name": S.BRAND,
         "aggregateRating": {
             "@type": "AggregateRating",
@@ -113,44 +137,28 @@ def local_business_review_block(reviews):
 
 
 # ---------------------------------------------------------------------------
-# AI-Authority entity builders (Sections 2-4 of the brief).
-# These emit a *single* rich entity per page. They are used by the master
-# authority page generator and can be reused by other generators. They never
-# invent data: sameAs only includes SAMEAS_VERIFIED, hours come from
-# OPENING_HOURS, founding year from FOUNDING_YEAR.
+# Canonical business entity (docs/ENTITY-MODEL.md).
+#
+# ONE node per page. `Plumber` is the most specific applicable LocalBusiness
+# subtype, and LocalBusiness is itself an Organization subtype — so this single
+# node is the organization too. A separate Organization node would duplicate
+# the same real-world thing. It never invents data: sameAs only includes
+# SAMEAS_VERIFIED, hours come from OPENING_HOURS, founding year from
+# FOUNDING_YEAR.
 # ---------------------------------------------------------------------------
 
 
-def organization():
-    """Organization block for the master authority page."""
-    return {
+def business(include_hours=True, include_offers=True):
+    """The canonical business entity, declared once per page on #business."""
+    node = {
         "@context": "https://schema.org",
-        "@type": "Organization",
-        "@id": f"{S.DOMAIN}/#organization",
+        "@type": "Plumber",
+        "@id": S.BUSINESS_ID,
         "name": S.BRAND,
+        "slogan": S.SLOGAN,
         "url": f"{S.DOMAIN}/",
         "logo": {"@type": "ImageObject", "url": f"{S.DOMAIN}/assets/img/logo.jpg"},
         "image": f"{S.DOMAIN}/assets/img/logo.jpg",
-        "sameAs": list(S.SAMEAS_VERIFIED),
-        "contactPoint": {
-            "@type": "ContactPoint",
-            "telephone": S.PHONE_TEL,
-            "contactType": "customer service",
-            "areaServed": "US",
-            "availableLanguage": "en",
-        },
-    }
-
-
-def local_business():
-    """LocalBusiness (Plumber subtype) entity with verified NAP only."""
-    return {
-        "@context": "https://schema.org",
-        "@type": "Plumber",
-        "@id": f"{S.DOMAIN}/#plumber",
-        "name": S.BRAND,
-        "image": f"{S.DOMAIN}/assets/img/logo.jpg",
-        "url": f"{S.DOMAIN}/",
         "telephone": S.PHONE_TEL,
         "email": S.EMAIL,
         "priceRange": "$$",
@@ -164,14 +172,43 @@ def local_business():
             "addressCountry": "US",
         },
         "areaServed": [{"@type": "City", "name": c + ", CA"} for c in S.AREA_SERVED],
-        "openingHoursSpecification": S.OPENING_HOURS,
         "sameAs": list(S.SAMEAS_VERIFIED),
-        "makesOffer": [
+    }
+    if include_hours:
+        node["openingHoursSpecification"] = S.OPENING_HOURS
+    if include_offers:
+        node["makesOffer"] = [
             {"@type": "Offer", "itemOffered": {"@type": "Service", "name": n}}
             for n in S.SERVICE_LABEL.values()
-        ],
-        "knowsAbout": list(S.KNOWS_ABOUT),
-    }
+        ]
+        node["knowsAbout"] = list(S.KNOWS_ABOUT)
+    return node
+
+
+def organization():
+    """Deprecated alias for business().
+
+    Retained so existing callers/tests keep working. The separate
+    `#organization` node was retired: `Plumber` already IS an Organization
+    subtype, so a second node duplicated the same entity.
+    """
+    return business()
+
+
+def local_business():
+    """Deprecated alias for business(). See organization()."""
+    return business()
+
+
+def local_business_page(city_label):
+    """Business node scoped to a city page: same @id, city narrowed to areaServed.
+
+    Deliberately keeps the ONE canonical @id and does NOT create a per-city
+    business entity — Straight Flush has a single real location.
+    """
+    node = business(include_hours=False, include_offers=False)
+    node["areaServed"] = {"@type": "City", "name": f"{city_label}, CA"}
+    return node
 
 
 def website(site_url=None):
@@ -180,25 +217,24 @@ def website(site_url=None):
     return {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "@id": f"{S.DOMAIN}/#website",
+        "@id": S.WEBSITE_ID,
         "url": url,
         "name": S.BRAND,
-        "publisher": {"@id": f"{S.DOMAIN}/#organization"},
+        "publisher": business_ref(),
     }
 
 
 def master_authority_schema():
     """All schema blocks for the /about/straight-flush-plumbing-orange-county/ page.
 
-    Combines Organization + LocalBusiness(Plumber) + WebSite + BreadcrumbList.
-    Review/AggregateRating blocks are intentionally NOT included here — the
-    brief forbids fabricating or marking up reviews that don't comply with
-    search-engine requirements. Verified reviews can be added later via the
-    review flywheel (F3) once they're documented on a compliant platform.
+    Business(Plumber) + WebSite + BreadcrumbList. Review/AggregateRating blocks
+    are intentionally NOT included here — the brief forbids fabricating or
+    marking up reviews that don't comply with search-engine requirements.
+    Verified reviews can be added later via the review flywheel (F3) once
+    they're documented on a compliant platform.
     """
     return [
-        organization(),
-        local_business(),
+        business(),
         website(),
         breadcrumbs([
             (1, "Home", f"{S.DOMAIN}/"),
